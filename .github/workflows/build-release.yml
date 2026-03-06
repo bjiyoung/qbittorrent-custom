@@ -1,0 +1,160 @@
+name: Build Release (Windows x64)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build Windows x64
+    runs-on: windows-latest
+    permissions:
+      actions: write
+
+    env:
+      boost_path: "${{ github.workspace }}/../boost"
+      libtorrent_path: "${{ github.workspace }}/../libtorrent"
+      vcpkg_path: "c:/vcpkg"
+      libt_version: "2.0.11"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Ninja
+        run: |
+          if ((Get-Command "ninja.exe" -ErrorAction SilentlyContinue) -eq $null)
+          {
+            choco install ninja
+          }
+          ninja --version
+
+      - name: Set vcpkg cache variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', (process.env.ACTIONS_CACHE_URL || ''));
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', (process.env.ACTIONS_RUNTIME_TOKEN || ''));
+
+      - name: Install OpenSSL and zlib via vcpkg
+        run: |
+          New-Item `
+            -Force `
+            -ItemType File `
+            -Path "${{ env.vcpkg_path }}/triplets_overlay/x64-windows-static-md-release.cmake"
+          Add-Content `
+            -Path "${{ env.vcpkg_path }}/triplets_overlay/x64-windows-static-md-release.cmake" `
+            -Value @(
+              "set(VCPKG_TARGET_ARCHITECTURE x64)",
+              "set(VCPKG_LIBRARY_LINKAGE static)",
+              "set(VCPKG_CRT_LINKAGE dynamic)",
+              "set(VCPKG_BUILD_TYPE release)"
+            )
+          $packages = `
+            "openssl:x64-windows-static-md-release",
+            "zlib:x64-windows-static-md-release"
+          ${{ env.vcpkg_path }}/vcpkg.exe upgrade `
+            --no-dry-run `
+            --overlay-triplets="${{ env.vcpkg_path }}/triplets_overlay"
+          ${{ env.vcpkg_path }}/vcpkg.exe install `
+            --binarysource="clear;x-gha,readwrite" `
+            --clean-after-build `
+            --overlay-triplets="${{ env.vcpkg_path }}/triplets_overlay" `
+            $packages
+
+      - name: Install Boost 1.86
+        env:
+          BOOST_MAJOR_VERSION: "1"
+          BOOST_MINOR_VERSION: "86"
+          BOOST_PATCH_VERSION: "0"
+        run: |
+          $boost_url = "https://archives.boost.io/release/${{ env.BOOST_MAJOR_VERSION }}.${{ env.BOOST_MINOR_VERSION }}.${{ env.BOOST_PATCH_VERSION }}/source/boost_${{ env.BOOST_MAJOR_VERSION }}_${{ env.BOOST_MINOR_VERSION }}_${{ env.BOOST_PATCH_VERSION }}.tar.gz"
+          curl -L -o "${{ runner.temp }}/boost.tar.gz" $boost_url
+          tar -xf "${{ runner.temp }}/boost.tar.gz" -C "${{ github.workspace }}/.."
+          move "${{ github.workspace }}/../boost_*" "${{ env.boost_path }}"
+
+      - name: Install Qt 6.8.0
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.0"
+          arch: win64_msvc2022_64
+          archives: qtbase qtsvg qttools
+          cache: true
+
+      - name: Build libtorrent ${{ env.libt_version }}
+        run: |
+          git clone `
+            --branch v${{ env.libt_version }} `
+            --depth 1 `
+            --recurse-submodules `
+            https://github.com/arvidn/libtorrent.git `
+            ${{ env.libtorrent_path }}
+          cd ${{ env.libtorrent_path }}
+          cmake `
+            -B build `
+            -G "Ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_CXX_STANDARD=20 `
+            -DCMAKE_INSTALL_PREFIX="${{ env.libtorrent_path }}/install" `
+            -DCMAKE_TOOLCHAIN_FILE="${{ env.vcpkg_path }}/scripts/buildsystems/vcpkg.cmake" `
+            -DBOOST_ROOT="${{ env.boost_path }}" `
+            -DBUILD_SHARED_LIBS=OFF `
+            -Ddeprecated-functions=OFF `
+            -Dstatic_runtime=OFF `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md-release
+          cmake --build build
+          cmake --install build
+
+      - name: Build qBittorrent
+        run: |
+          cmake `
+            -B build `
+            -G "Ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="${{ env.vcpkg_path }}/scripts/buildsystems/vcpkg.cmake" `
+            -DBOOST_ROOT="${{ env.boost_path }}" `
+            -DLibtorrentRasterbar_DIR="${{ env.libtorrent_path }}/install/lib/cmake/LibtorrentRasterbar" `
+            -DMSVC_RUNTIME_DYNAMIC=ON `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md-release
+          cmake --build build
+
+      - name: Collect release files
+        run: |
+          mkdir release
+          copy build\qbittorrent.exe release\
+          copy dist\windows\qt.conf release\
+          copy "${{ env.Qt_ROOT_DIR }}\bin\Qt6Core.dll"    release\
+          copy "${{ env.Qt_ROOT_DIR }}\bin\Qt6Gui.dll"     release\
+          copy "${{ env.Qt_ROOT_DIR }}\bin\Qt6Network.dll" release\
+          copy "${{ env.Qt_ROOT_DIR }}\bin\Qt6Sql.dll"     release\
+          copy "${{ env.Qt_ROOT_DIR }}\bin\Qt6Svg.dll"     release\
+          copy "${{ env.Qt_ROOT_DIR }}\bin\Qt6Widgets.dll" release\
+          copy "${{ env.Qt_ROOT_DIR }}\bin\Qt6Xml.dll"     release\
+          mkdir release\plugins\iconengines
+          copy "${{ env.Qt_ROOT_DIR }}\plugins\iconengines\qsvgicon.dll"        release\plugins\iconengines\
+          mkdir release\plugins\imageformats
+          copy "${{ env.Qt_ROOT_DIR }}\plugins\imageformats\qico.dll"           release\plugins\imageformats\
+          copy "${{ env.Qt_ROOT_DIR }}\plugins\imageformats\qsvg.dll"           release\plugins\imageformats\
+          mkdir release\plugins\platforms
+          copy "${{ env.Qt_ROOT_DIR }}\plugins\platforms\qwindows.dll"          release\plugins\platforms\
+          mkdir release\plugins\sqldrivers
+          copy "${{ env.Qt_ROOT_DIR }}\plugins\sqldrivers\qsqlite.dll"          release\plugins\sqldrivers\
+          mkdir release\plugins\styles
+          copy "${{ env.Qt_ROOT_DIR }}\plugins\styles\qmodernwindowsstyle.dll"  release\plugins\styles\
+          mkdir release\plugins\tls
+          copy "${{ env.Qt_ROOT_DIR }}\plugins\tls\qschannelbackend.dll"        release\plugins\tls\
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qBittorrent-5.1.4-custom-windows-x64
+          path: release/
+          retention-days: 90
