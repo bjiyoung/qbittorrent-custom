@@ -323,6 +323,20 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="customBuildTab">
+      <attribute name="title">
+       <string>Custom Build</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="customBuildTabLayout">
+       <item>
+        <widget class="QTextBrowser" name="textBrowserCustomBuild">
+         <property name="openExternalLinks">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
      <widget class="QWidget" name="SoftwareUsedTab">
       <attribute name="title">
        <string>Software Used</string>

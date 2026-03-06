@@ -81,6 +81,7 @@ private slots:
     void TMMChanged(int index);
     void categoryChanged(int index);
     void contentLayoutChanged();
+    void applySizeFilter();
 
 private:
     class TorrentContentAdaptor;
@@ -98,7 +99,6 @@ private:
     void saveTorrentFile();
     void showContentFilterContextMenu();
     void setContentFilterPattern();
-    void applySizeFilter();
 
     Ui::AddNewTorrentDialog *m_ui = nullptr;
     std::unique_ptr<TorrentContentAdaptor> m_contentAdaptor;

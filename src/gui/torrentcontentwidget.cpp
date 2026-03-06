@@ -228,35 +228,34 @@ void TorrentContentWidget::checkNone()
 
 void TorrentContentWidget::checkByMinSize(const qulonglong minSizeBytes)
 {
-    // Recursively traverse the model and check files whose size >= minSizeBytes,
-    // uncheck files whose size < minSizeBytes.
+    // Operate directly on the source model (m_model) to avoid any proxy-model
+    // timing issues. The source model is always ready once setContentHandler()
+    // has been called.
     std::function<void(const QModelIndex &)> applyRecursive = [&](const QModelIndex &parent)
     {
-        const int rows = model()->rowCount(parent);
+        const int rows = m_model->rowCount(parent);
         for (int i = 0; i < rows; ++i)
         {
-            const QModelIndex nameIndex = model()->index(i, TorrentContentModelItem::COL_NAME, parent);
-            const QModelIndex sizeIndex = model()->index(i, TorrentContentModelItem::COL_SIZE, parent);
+            const QModelIndex nameIndex = m_model->index(i, TorrentContentModelItem::COL_NAME, parent);
+            const QModelIndex sizeIndex = m_model->index(i, TorrentContentModelItem::COL_SIZE, parent);
 
-            if (model()->rowCount(nameIndex) > 0)
+            if (m_model->rowCount(nameIndex) > 0)
             {
-                // This is a folder node – recurse into it; its check state will
-                // be updated automatically by the model as children change.
+                // Folder node: recurse; check state propagates automatically.
                 applyRecursive(nameIndex);
             }
             else
             {
-                // This is a leaf file node – check by size.
-                const qulonglong fileSize = model()->data(sizeIndex, TorrentContentModel::Roles::UnderlyingDataRole).toULongLong();
+                // Leaf file node: check by size.
+                const qulonglong fileSize = m_model->data(sizeIndex, TorrentContentModel::UnderlyingDataRole).toULongLong();
                 const Qt::CheckState checkState = (fileSize >= minSizeBytes) ? Qt::Checked : Qt::Unchecked;
-                model()->setData(nameIndex, checkState, Qt::CheckStateRole);
+                m_model->setData(nameIndex, checkState, Qt::CheckStateRole);
             }
         }
     };
 
     applyRecursive({});
 }
-
 void TorrentContentWidget::keyPressEvent(QKeyEvent *event)
 {
     if ((event->key() != Qt::Key_Space) && (event->key() != Qt::Key_Select))

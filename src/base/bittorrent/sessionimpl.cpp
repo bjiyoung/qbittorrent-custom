@@ -5427,6 +5427,11 @@ void SessionImpl::processPendingFinishedTorrents()
             exportTorrentFile(torrent, exportPath);
 
         processTorrentShareLimits(torrent);
+
+        // Automatically stop the torrent so the UI state shows Completed
+        // (StoppedUploading) instead of staying as Seeding.
+        if (!torrent->isStopped())
+            torrent->stop();
     }
 
     m_pendingFinishedTorrents.clear();

@@ -46,6 +46,7 @@
 #include <QSignalBlocker>
 #include <QSize>
 #include <QString>
+#include <QTimer>
 #include <QUrl>
 
 #include "base/bittorrent/addtorrentparams.h"
@@ -990,6 +991,11 @@ void AddNewTorrentDialog::setupTreeview()
     }
 
     m_ui->contentTreeView->setContentHandler(m_contentAdaptor.get());
+
+    // Auto-apply size filter after the event loop has processed all model-reset
+    // signals (proxy model needs one event-loop cycle to fully rebuild its mapping).
+    if (m_ui->checkBoxSizeFilter->isChecked())
+        applySizeFilter();
 
     m_filterLine->blockSignals(false);
 

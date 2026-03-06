@@ -93,6 +93,39 @@ AboutDialog::AboutDialog(QWidget *parent)
         m_ui->textBrowserLicense->setHtml(QString::fromUtf8(readResult.value()));
     }
 
+    // Custom Build
+    const QString customBuildHtml = QString::fromLatin1(
+        "<html><body style=\"font-family: sans-serif; margin: 12px;\">"
+        "<h2>Custom Build Patch Notes</h2>"
+        "<p style=\"color: #666;\">Based on qBittorrent " QBT_VERSION " &mdash; custom modifications applied.</p>"
+        "<hr/>"
+        "<h3>&#x2705; Auto-complete status after move to finished folder</h3>"
+        "<p>When a torrent finishes downloading and is moved to the completed folder, "
+        "the torrent is automatically stopped so the status changes to "
+        "<b>Completed</b> instead of remaining as <i>Seeding</i>.</p>"
+        "<ul>"
+        "<li>Handles both immediate completion and cases where the move was already in progress</li>"
+        "<li>State is refreshed in the UI immediately after the move finishes</li>"
+        "</ul>"
+        "<hr/>"
+        "<h3>&#x2705; Minimum file size filter in Add Torrent dialog</h3>"
+        "<p>The <i>Add New Torrent</i> dialog now has a size filter control next to the "
+        "<b>Select All</b> / <b>Select None</b> buttons.</p>"
+        "<ul>"
+        "<li>Checkbox to enable / disable the filter</li>"
+        "<li>Text box to enter a size threshold value</li>"
+        "<li>Drop-down to choose unit: <b>KB / MB / GB / TB</b></li>"
+        "<li>When enabled, files &ge; the threshold are checked automatically; "
+        "smaller files are unchecked</li>"
+        "<li>Works recursively through all folder levels in the file tree</li>"
+        "<li>Settings (enabled state, value, unit) are <b>saved and restored</b> across restarts</li>"
+        "<li>Filter is <b>re-applied automatically every time</b> the Add Torrent dialog opens</li>"
+        "<li>Also works for magnet links once metadata is received</li>"
+        "</ul>"
+        "</body></html>"
+    );
+    m_ui->textBrowserCustomBuild->setHtml(customBuildHtml);
+
     // Software Used
     m_ui->labelQtVer->setText(QStringLiteral(QT_VERSION_STR));
     m_ui->labelLibtVer->setText(Utils::Misc::libtorrentVersionString());

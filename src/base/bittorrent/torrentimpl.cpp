@@ -2059,13 +2059,19 @@ void TorrentImpl::handleMoveStorageJobFinished(const Path &path, const MoveStora
         }
 
         // If the torrent has finished downloading and was moved to the completion folder
-        // (AdjustCurrentLocation context), ensure the finished state is properly reported.
-        if ((context == MoveStorageContext::AdjustCurrentLocation) && m_hasFinishedStatus
-                && m_moveFinishedTriggers.isEmpty())
+        // (AdjustCurrentLocation context), stop it so the state becomes StoppedUploading
+        // which is displayed as "Completed" in the UI.
+        if ((context == MoveStorageContext::AdjustCurrentLocation) && m_hasFinishedStatus)
         {
-            // No pending finished trigger was queued (e.g. torrent finished before this move
-            // was enqueued), so explicitly notify the session now.
-            m_session->handleTorrentFinished(this);
+            // Drain any pending finished triggers first (e.g. handleTorrentFinished queued
+            // while the move was still in progress).
+            while ((m_renameCount == 0) && !m_moveFinishedTriggers.isEmpty())
+                std::invoke(m_moveFinishedTriggers.dequeue());
+
+            stop();
+            updateState();
+            m_session->handleTorrentStorageMovingStateChanged(this);
+            return;
         }
 
         while ((m_renameCount == 0) && !m_moveFinishedTriggers.isEmpty())

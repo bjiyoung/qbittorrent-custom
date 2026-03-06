@@ -531,7 +531,7 @@
              <item>
               <widget class="QCheckBox" name="checkBoxSizeFilter">
                <property name="text">
-                <string>Min size:</string>
+                <string>최소 크기:</string>
                </property>
                <property name="toolTip">
                 <string>Enable automatic file selection by minimum size</string>

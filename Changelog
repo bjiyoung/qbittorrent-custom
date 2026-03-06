@@ -1,3 +1,13 @@
+Thu Mar 06th 2026 - bjiyoung - v5.1.4.1
+    - BUGFIX: Fixed auto-complete status: now stops torrent in processPendingFinishedTorrents
+      for reliable "Completed" state regardless of whether a folder move occurred (bjiyoung)
+    - BUGFIX: Fixed size filter auto-apply on dialog open: checkByMinSize now operates
+      directly on source model (m_model) instead of proxy to avoid timing issues (bjiyoung)
+    - BUGFIX: Fixed Custom Build tab in About dialog (QString::fromLatin1 for QBT_VERSION
+      macro compatibility) (bjiyoung)
+    - UI: Changed "Min size:" label to "최소 크기:" in Add Torrent dialog (bjiyoung)
+
+
 Wed Nov 19th 2025 - sledgehammer999 <sledgehammer999@qbittorrent.org> - v5.1.4
     - WEBUI: Fixes a regression in v5.1.3 (Chocobo1)
 
