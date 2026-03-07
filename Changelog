@@ -1,3 +1,8 @@
+Sat Mar 07th 2026 - bjiyoung - v5.1.4.2
+    - BUGFIX: Restore selection highlight after torrent status change (bjiyoung)
+      Dynamic sort filter re-layouts caused QItemSelectionModel to lose the blue
+      selection highlight. Now saves and restores selection around layoutChanged.
+
 Thu Mar 06th 2026 - bjiyoung - v5.1.4.1
     - BUGFIX: Fixed auto-complete status: now stops torrent in processPendingFinishedTorrents
       for reliable "Completed" state regardless of whether a folder move occurred (bjiyoung)

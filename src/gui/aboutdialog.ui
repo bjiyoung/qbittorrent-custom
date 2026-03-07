@@ -325,7 +325,7 @@
      </widget>
      <widget class="QWidget" name="customBuildTab">
       <attribute name="title">
-       <string>Custom Build</string>
+       <string>커스텀 빌드</string>
       </attribute>
       <layout class="QVBoxLayout" name="customBuildTabLayout">
        <item>

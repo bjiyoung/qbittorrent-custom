@@ -5427,14 +5427,19 @@ void SessionImpl::processPendingFinishedTorrents()
             exportTorrentFile(torrent, exportPath);
 
         processTorrentShareLimits(torrent);
+    }
 
-        // Automatically stop the torrent so the UI state shows Completed
-        // (StoppedUploading) instead of staying as Seeding.
+    // Automatically stop all finished torrents so the UI state shows "Completed"
+    // (StoppedUploading) instead of staying as "Seeding".
+    // Collect them first and stop after the loop to avoid mutating state mid-iteration.
+    const QList<TorrentImpl *> toStop = m_pendingFinishedTorrents;
+    m_pendingFinishedTorrents.clear();
+
+    for (TorrentImpl *torrent : toStop)
+    {
         if (!torrent->isStopped())
             torrent->stop();
     }
-
-    m_pendingFinishedTorrents.clear();
 
     const bool hasUnfinishedTorrents = std::any_of(m_torrents.cbegin(), m_torrents.cend(), [](const TorrentImpl *torrent)
     {

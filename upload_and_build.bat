@@ -2,29 +2,26 @@
 setlocal enabledelayedexpansion
 
 echo ============================================
-echo  qBittorrent Custom Build - GitHub Upload
+echo  qBittorrent Custom Build - Upload + Build
 echo ============================================
 echo.
 
-:: -- Move to the folder where this .bat file lives --
 cd /d "%~dp0"
 echo Working directory: %cd%
 echo.
 
-:: -- Check Git -------------------------------
+:: Check Git
 git --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Git is not installed.
-    echo  Download: https://git-scm.com/download/win
+    echo [ERROR] Git not found. Download: https://git-scm.com/download/win
     pause & exit /b 1
 )
 
-:: -- Check GitHub CLI ------------------------
+:: Check GitHub CLI
 gh --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [INFO] GitHub CLI not found. Installing...
+    echo [INFO] Installing GitHub CLI...
     winget install GitHub.cli
-    :: Refresh PATH without restarting
     set "PATH=%PATH%;C:\Program Files\GitHub CLI"
     gh --version >nul 2>&1
     if %errorlevel% neq 0 (
@@ -33,84 +30,112 @@ if %errorlevel% neq 0 (
     )
 )
 
-:: -- Check GitHub login ----------------------
+:: Check GitHub login
 gh auth status >nul 2>&1
 if %errorlevel% neq 0 (
     echo [INFO] GitHub login required.
     gh auth login
-    :: gh auth login may return non-zero even on success, so re-check
     gh auth status >nul 2>&1
     if %errorlevel% neq 0 (
-        echo [ERROR] Login failed. Please try again.
+        echo [ERROR] Login failed.
         pause & exit /b 1
     )
 )
 echo [OK] GitHub login confirmed.
 echo.
 
-:: -- Check we are in source root -------------
+:: Check source root
 if not exist "CMakeLists.txt" (
     echo [ERROR] CMakeLists.txt not found in: %cd%
-    echo  Make sure this .bat file is inside the qbittorrent-5.1.4 folder.
+    echo  This bat file must be inside the qbittorrent source folder.
     pause & exit /b 1
 )
 
-:: -- Git init --------------------------------
-echo [1/4] Setting up Git repository...
+:: Fix line ending issues
+git config core.autocrlf false
+git config core.eol lf
+
+:: -- Step 1: Commit changes ------------------
+echo [1/4] Checking for changes...
+echo.
+
 if not exist ".git" (
+    echo  -> Initializing new repository
     git init
-    git add .
+    git add -A
     git commit -m "qBittorrent 5.1.4 with custom patches"
 ) else (
-    git add .
-    git diff --cached --quiet
-    if %errorlevel% neq 0 (
-        git commit -m "Update custom patches"
+    git add -A
+
+    set "CHANGED="
+    for /f %%i in ('git status --porcelain') do set CHANGED=1
+
+    if defined CHANGED (
+        echo  -> Changed files:
+        git status --short
+        echo.
+
+        set "BUILD=0"
+        for /f "tokens=3" %%a in ('findstr "QBT_VERSION_BUILD" src\base\version.h.in') do set "BUILD=%%a"
+        set "MSG=Update custom patches v5.1.4.!BUILD!"
+        echo  -> Committing: !MSG!
+        git commit -m "!MSG!"
+        echo [OK] Committed.
     ) else (
-        echo      Nothing to commit.
+        echo  -> No changes detected. Pushing current commit as-is.
+        echo.
+        git log --oneline -3
     )
 )
 echo.
 
-:: -- Create GitHub repo and push -------------
+:: -- Step 2: Push to GitHub ------------------
 echo [2/4] Pushing to GitHub...
 git remote get-url origin >nul 2>&1
 if %errorlevel% neq 0 (
+    echo  -> Creating new repository...
     gh repo create qbittorrent-custom --public --source=. --push
     if %errorlevel% neq 0 (
         echo [ERROR] Failed to create repository.
-        echo  A repo named 'qbittorrent-custom' may already exist on your account.
-        echo  Delete it first:  gh repo delete qbittorrent-custom --yes
+        echo  Try deleting existing repo: gh repo delete qbittorrent-custom --yes
         pause & exit /b 1
     )
 ) else (
-    git push
+    git push origin master
+    if %errorlevel% neq 0 (
+        echo  -> Retrying with force push...
+        git push --force origin master
+        if %errorlevel% neq 0 (
+            echo [ERROR] Push failed.
+            pause & exit /b 1
+        )
+    )
 )
+echo [OK] Push complete.
 echo.
 
-:: -- Trigger workflow ------------------------
+:: -- Step 3: Trigger workflow -----------------
 echo [3/4] Starting build workflow...
 gh workflow run build-release.yml
 if %errorlevel% neq 0 (
-    echo [WARNING] Could not trigger workflow automatically.
-    echo  The workflow will start automatically on the next push.
+    echo  -> (workflow will start automatically from push)
 )
 echo.
 
-:: -- Done ------------------------------------
-echo [4/4] Done!
+:: -- Step 4: Done -----------------------------
+echo [4/4] Done! Recent commits:
+git log --oneline -3
 echo.
 echo ============================================
-echo  Build started! (takes about 30-50 minutes)
+echo  Build started! (approx 30-50 minutes)
 echo ============================================
 echo.
-echo  Check status:
+echo  Check build status:
 echo    gh run list --workflow=build-release.yml
 echo.
 echo  After build completes, run:
 echo    download.bat
 echo.
-echo  Open in browser:
 gh repo view --web
 echo.
 pause
