@@ -76,7 +76,7 @@ if not exist ".git" (
         echo.
 
         set "BUILD=0"
-        for /f "tokens=3" %%a in ('findstr "QBT_VERSION_BUILD" src\base\version.h.in') do set "BUILD=%%a"
+        for /f "tokens=3" %%a in ('findstr /r "^#define QBT_VERSION_BUILD" src\base\version.h.in') do set "BUILD=%%a"
         set "MSG=Update custom patches v5.1.4.!BUILD!"
         echo  -> Committing: !MSG!
         git commit -m "!MSG!"
@@ -114,16 +114,8 @@ if %errorlevel% neq 0 (
 echo [OK] Push complete.
 echo.
 
-:: -- Step 3: Trigger workflow -----------------
-echo [3/4] Starting build workflow...
-gh workflow run build-release.yml
-if %errorlevel% neq 0 (
-    echo  -> (workflow will start automatically from push)
-)
-echo.
-
-:: -- Step 4: Done -----------------------------
-echo [4/4] Done! Recent commits:
+:: -- Step 3: Done ----------------------------
+echo [3/4] Done! Recent commits:
 git log --oneline -3
 echo.
 echo ============================================
