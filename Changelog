@@ -1,6 +1,5 @@
-Sun Mar 08th 2026 - bjiyoung - v5.1.4.4
-    - FEATURE: Stop auto-confirm timer on any dialog setting change (bjiyoung)
-      Timer now cancels (OK button restores) when user touches any control:
-      save path, download path, category, tags, content layout, TMM, start/stop
-      condition, file filter, select all/none, file tree check state, size filter.
+Sun Mar 08th 2026 - bjiyoung - v5.1.4.5
+    - BUGFIX: Auto-confirm countdown now appears on OK button (was invisible because
+      timer started before dialog was shown; moved to showEvent) (bjiyoung)
+    - UI: Translated auto-confirm option label to Korean (bjiyoung)
 

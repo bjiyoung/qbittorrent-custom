@@ -911,7 +911,7 @@
                     <item>
                      <widget class="QCheckBox" name="checkAutoConfirmSizeFilter">
                       <property name="text">
-                       <string>Auto-confirm when size filter is active, after</string>
+                       <string>크기 필터 활성화 시 자동 확인, 대기 시간:</string>
                       </property>
                      </widget>
                     </item>

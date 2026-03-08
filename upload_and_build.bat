@@ -76,7 +76,7 @@ if not exist ".git" (
         echo.
 
         set "BUILD=0"
-        for /f "tokens=3" %%a in ('findstr /r "^#define QBT_VERSION_BUILD" src\base\version.h.in') do set "BUILD=%%a"
+        for /f "tokens=3" %%a in ('findstr "#define QBT_VERSION_BUILD " src\base\version.h.in') do set "BUILD=%%a"
         set "MSG=Update custom patches v5.1.4.!BUILD!"
         echo  -> Committing: !MSG!
         git commit -m "!MSG!"

@@ -125,4 +125,5 @@ private:
 
     QTimer *m_autoConfirmTimer = nullptr;
     int m_autoConfirmCountdown = 0;
+    bool m_pendingAutoConfirm = false;
 };

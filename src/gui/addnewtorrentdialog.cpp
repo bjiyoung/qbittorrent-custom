@@ -480,6 +480,15 @@ void AddNewTorrentDialog::saveState()
 void AddNewTorrentDialog::showEvent(QShowEvent *event)
 {
     QDialog::showEvent(event);
+
+    // Start auto-confirm timer now that the dialog (and its buttons) are visible.
+    // setupTreeview() sets m_pendingAutoConfirm when the conditions are met.
+    if (m_pendingAutoConfirm)
+    {
+        m_pendingAutoConfirm = false;
+        startAutoConfirmTimer();
+    }
+
     if (!Preferences::instance()->isAddNewTorrentDialogTopLevel())
         return;
 
@@ -944,8 +953,16 @@ void AddNewTorrentDialog::updateMetadata(const BitTorrent::TorrentInfo &metadata
     setMetadataProgressIndicator(true, tr("Parsing metadata..."));
 
     // Update UI
+    m_pendingAutoConfirm = false;  // reset so setupTreeview can set it
     setupTreeview();
     setMetadataProgressIndicator(false, tr("Metadata retrieval complete"));
+
+    // Dialog is already visible here (magnet link), start timer directly
+    if (m_pendingAutoConfirm)
+    {
+        m_pendingAutoConfirm = false;
+        startAutoConfirmTimer();
+    }
 
     if (const auto stopCondition = m_ui->stopConditionComboBox->currentData().value<BitTorrent::Torrent::StopCondition>()
             ; stopCondition == BitTorrent::Torrent::StopCondition::MetadataReceived)
@@ -1021,7 +1038,7 @@ void AddNewTorrentDialog::setupTreeview()
     if (m_ui->checkBoxSizeFilter->isChecked())
     {
         applySizeFilter();
-        startAutoConfirmTimer();
+        m_pendingAutoConfirm = true;  // will start after dialog is shown
     }
 
     m_filterLine->blockSignals(false);
