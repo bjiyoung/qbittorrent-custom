@@ -435,6 +435,10 @@ public:
     void setAddNewTorrentDialogSavePathHistoryLength(int value);
     bool isAddNewTorrentDialogAttached() const;
     void setAddNewTorrentDialogAttached(bool attached);
+    bool isAutoConfirmWhenSizeFilterEnabled() const;
+    void setAutoConfirmWhenSizeFilterEnabled(bool enabled);
+    int autoConfirmWhenSizeFilterDelay() const;
+    void setAutoConfirmWhenSizeFilterDelay(int seconds);
 
 public slots:
     void setStatusFilterState(bool checked);

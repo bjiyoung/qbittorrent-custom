@@ -2067,6 +2067,32 @@ void Preferences::setAddNewTorrentDialogAttached(const bool attached)
     setValue(u"AddNewTorrentDialog/Attached"_s, attached);
 }
 
+bool Preferences::isAutoConfirmWhenSizeFilterEnabled() const
+{
+    return value(u"AddNewTorrentDialog/AutoConfirmWhenSizeFilter"_s, false);
+}
+
+void Preferences::setAutoConfirmWhenSizeFilterEnabled(const bool enabled)
+{
+    if (enabled == isAutoConfirmWhenSizeFilterEnabled())
+        return;
+
+    setValue(u"AddNewTorrentDialog/AutoConfirmWhenSizeFilter"_s, enabled);
+}
+
+int Preferences::autoConfirmWhenSizeFilterDelay() const
+{
+    return std::clamp(value(u"AddNewTorrentDialog/AutoConfirmDelay"_s, 5), 1, 60);
+}
+
+void Preferences::setAutoConfirmWhenSizeFilterDelay(const int seconds)
+{
+    if (seconds == autoConfirmWhenSizeFilterDelay())
+        return;
+
+    setValue(u"AddNewTorrentDialog/AutoConfirmDelay"_s, std::clamp(seconds, 1, 60));
+}
+
 void Preferences::apply()
 {
     if (SettingsStorage::instance()->save())

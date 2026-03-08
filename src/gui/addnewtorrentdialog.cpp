@@ -349,7 +349,11 @@ AddNewTorrentDialog::AddNewTorrentDialog(const BitTorrent::TorrentDescriptor &to
     m_ui->contentTreeView->setDoubleClickAction(TorrentContentWidget::DoubleClickAction::Rename);
 
     connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, [this]()
+    {
+        stopAutoConfirmTimer();
+        QDialog::reject();
+    });
     connect(m_ui->buttonSave, &QPushButton::clicked, this, &AddNewTorrentDialog::saveTorrentFile);
     connect(m_ui->savePath, &FileSystemPathEdit::selectedPathChanged, this, &AddNewTorrentDialog::onSavePathChanged);
     connect(m_ui->downloadPath, &FileSystemPathEdit::selectedPathChanged, this, &AddNewTorrentDialog::onDownloadPathChanged);
@@ -395,6 +399,26 @@ AddNewTorrentDialog::AddNewTorrentDialog(const BitTorrent::TorrentDescriptor &to
         if (m_ui->checkBoxSizeFilter->isChecked())
             applySizeFilter();
     });
+
+    // Stop auto-confirm timer when the user changes ANY setting in the dialog
+    const auto stopTimer = [this]() { stopAutoConfirmTimer(); };
+    connect(m_ui->savePath,                &FileSystemPathEdit::selectedPathChanged,          this, stopTimer);
+    connect(m_ui->downloadPath,            &FileSystemPathEdit::selectedPathChanged,          this, stopTimer);
+    connect(m_ui->groupBoxDownloadPath,    &QGroupBox::toggled,                               this, stopTimer);
+    connect(m_ui->checkBoxRememberLastSavePath, &QCheckBox::toggled,                          this, stopTimer);
+    connect(m_ui->comboTMM,               qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
+    connect(m_ui->categoryComboBox,       qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
+    connect(m_ui->tagsEditButton,         &QPushButton::clicked,                             this, stopTimer);
+    connect(m_ui->startTorrentCheckBox,   &QCheckBox::toggled,                               this, stopTimer);
+    connect(m_ui->stopConditionComboBox,  qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
+    connect(m_ui->contentLayoutComboBox,  qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
+    connect(m_ui->buttonSelectAll,        &QPushButton::clicked,                             this, stopTimer);
+    connect(m_ui->buttonSelectNone,       &QPushButton::clicked,                             this, stopTimer);
+    connect(m_ui->lineEditSizeFilter,     &QLineEdit::textChanged,                           this, stopTimer);
+    connect(m_ui->comboBoxSizeUnit,       qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
+    connect(m_filterLine,                 &LineEdit::textChanged,                            this, stopTimer);
+    connect(m_ui->contentTreeView,        &TorrentContentWidget::stateChanged,               this, stopTimer);
+
     connect(Preferences::instance(), &Preferences::changed, []
     {
         const int length = Preferences::instance()->addNewTorrentDialogSavePathHistoryLength();
@@ -995,7 +1019,10 @@ void AddNewTorrentDialog::setupTreeview()
     // Auto-apply size filter after the event loop has processed all model-reset
     // signals (proxy model needs one event-loop cycle to fully rebuild its mapping).
     if (m_ui->checkBoxSizeFilter->isChecked())
+    {
         applySizeFilter();
+        startAutoConfirmTimer();
+    }
 
     m_filterLine->blockSignals(false);
 
@@ -1030,4 +1057,57 @@ void AddNewTorrentDialog::TMMChanged(int index)
     }
 
     updateDiskSpaceLabel();
+}
+
+void AddNewTorrentDialog::startAutoConfirmTimer()
+{
+    const auto *pref = Preferences::instance();
+
+    // Only start if auto-confirm is enabled in preferences and size filter is active
+    if (!pref->isAutoConfirmWhenSizeFilterEnabled())
+        return;
+    if (!m_ui->checkBoxSizeFilter->isChecked())
+        return;
+
+    stopAutoConfirmTimer();
+
+    m_autoConfirmCountdown = pref->autoConfirmWhenSizeFilterDelay();
+
+    // Update OK button text immediately
+    if (auto *okBtn = m_ui->buttonBox->button(QDialogButtonBox::Ok))
+        okBtn->setText(tr("OK (%1)").arg(m_autoConfirmCountdown));
+
+    m_autoConfirmTimer = new QTimer(this);
+    m_autoConfirmTimer->setInterval(1000);
+    connect(m_autoConfirmTimer, &QTimer::timeout, this, &AddNewTorrentDialog::onAutoConfirmTick);
+    m_autoConfirmTimer->start();
+}
+
+void AddNewTorrentDialog::stopAutoConfirmTimer()
+{
+    if (!m_autoConfirmTimer)
+        return;
+
+    m_autoConfirmTimer->stop();
+    m_autoConfirmTimer->deleteLater();
+    m_autoConfirmTimer = nullptr;
+    m_autoConfirmCountdown = 0;
+
+    // Restore original OK button text
+    if (auto *okBtn = m_ui->buttonBox->button(QDialogButtonBox::Ok))
+        okBtn->setText(tr("OK"));
+}
+
+void AddNewTorrentDialog::onAutoConfirmTick()
+{
+    --m_autoConfirmCountdown;
+
+    if (auto *okBtn = m_ui->buttonBox->button(QDialogButtonBox::Ok))
+        okBtn->setText(tr("OK (%1)").arg(m_autoConfirmCountdown));
+
+    if (m_autoConfirmCountdown <= 0)
+    {
+        stopAutoConfirmTimer();
+        accept();
+    }
 }

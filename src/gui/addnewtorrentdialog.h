@@ -32,6 +32,7 @@
 #include <memory>
 
 #include <QDialog>
+#include <QTimer>
 
 #include "base/path.h"
 #include "base/settingvalue.h"
@@ -99,6 +100,9 @@ private:
     void saveTorrentFile();
     void showContentFilterContextMenu();
     void setContentFilterPattern();
+    void startAutoConfirmTimer();
+    void stopAutoConfirmTimer();
+    void onAutoConfirmTick();
 
     Ui::AddNewTorrentDialog *m_ui = nullptr;
     std::unique_ptr<TorrentContentAdaptor> m_contentAdaptor;
@@ -118,4 +122,7 @@ private:
     SettingValue<bool> m_storeSizeFilterEnabled;
     SettingValue<QString> m_storeSizeFilterValue;
     SettingValue<int> m_storeSizeFilterUnit;
+
+    QTimer *m_autoConfirmTimer = nullptr;
+    int m_autoConfirmCountdown = 0;
 };

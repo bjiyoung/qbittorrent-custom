@@ -547,6 +547,10 @@ void OptionsDialog::loadDownloadsTabOptions()
 
     m_ui->checkAdditionDialog->setChecked(pref->isAddNewTorrentDialogEnabled());
     m_ui->checkAdditionDialogFront->setChecked(pref->isAddNewTorrentDialogTopLevel());
+    m_ui->checkAutoConfirmSizeFilter->setChecked(pref->isAutoConfirmWhenSizeFilterEnabled());
+    m_ui->spinAutoConfirmDelay->setValue(pref->autoConfirmWhenSizeFilterDelay());
+    m_ui->checkAutoConfirmSizeFilter->setEnabled(m_ui->checkAdditionDialog->isChecked());
+    m_ui->spinAutoConfirmDelay->setEnabled(m_ui->checkAdditionDialog->isChecked() && m_ui->checkAutoConfirmSizeFilter->isChecked());
 
     m_ui->contentLayoutComboBox->setCurrentIndex(static_cast<int>(session->torrentContentLayout()));
     m_ui->checkAddToQueueTop->setChecked(session->isAddTorrentToQueueTop());
@@ -572,6 +576,12 @@ void OptionsDialog::loadDownloadsTabOptions()
     {
         m_ui->checkConfirmMergeTrackers->setEnabled(m_ui->checkAdditionDialog->isChecked());
         m_ui->checkConfirmMergeTrackers->setChecked(m_ui->checkConfirmMergeTrackers->isEnabled() ? pref->confirmMergeTrackers() : false);
+        m_ui->checkAutoConfirmSizeFilter->setEnabled(m_ui->checkAdditionDialog->isChecked());
+        m_ui->spinAutoConfirmDelay->setEnabled(m_ui->checkAdditionDialog->isChecked() && m_ui->checkAutoConfirmSizeFilter->isChecked());
+    });
+    connect(m_ui->checkAutoConfirmSizeFilter, &QCheckBox::toggled, this, [this](const bool checked)
+    {
+        m_ui->spinAutoConfirmDelay->setEnabled(checked);
     });
 
     const TorrentFileGuard::AutoDeleteMode autoDeleteMode = TorrentFileGuard::autoDeleteMode();
@@ -679,6 +689,8 @@ void OptionsDialog::loadDownloadsTabOptions()
 
     connect(m_ui->checkAdditionDialog, &QGroupBox::toggled, this, &ThisType::enableApplyButton);
     connect(m_ui->checkAdditionDialogFront, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
+    connect(m_ui->checkAutoConfirmSizeFilter, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
+    connect(m_ui->spinAutoConfirmDelay, qOverload<int>(&QSpinBox::valueChanged), this, &ThisType::enableApplyButton);
 
     connect(m_ui->contentLayoutComboBox, qComboBoxCurrentIndexChanged, this, &ThisType::enableApplyButton);
 
@@ -756,6 +768,8 @@ void OptionsDialog::saveDownloadsTabOptions() const
 
     pref->setAddNewTorrentDialogEnabled(useAdditionDialog());
     pref->setAddNewTorrentDialogTopLevel(m_ui->checkAdditionDialogFront->isChecked());
+    pref->setAutoConfirmWhenSizeFilterEnabled(m_ui->checkAutoConfirmSizeFilter->isChecked());
+    pref->setAutoConfirmWhenSizeFilterDelay(m_ui->spinAutoConfirmDelay->value());
 
     session->setTorrentContentLayout(static_cast<BitTorrent::TorrentContentLayout>(m_ui->contentLayoutComboBox->currentIndex()));
 

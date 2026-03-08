@@ -906,6 +906,46 @@
                     </property>
                    </widget>
                   </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="autoConfirmLayout">
+                    <item>
+                     <widget class="QCheckBox" name="checkAutoConfirmSizeFilter">
+                      <property name="text">
+                       <string>Auto-confirm when size filter is active, after</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinAutoConfirmDelay">
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                      <property name="maximum">
+                       <number>60</number>
+                      </property>
+                      <property name="value">
+                       <number>5</number>
+                      </property>
+                      <property name="suffix">
+                       <string> sec</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="autoConfirmSpacer">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
                  </layout>
                 </widget>
                </item>
