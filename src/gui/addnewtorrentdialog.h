@@ -32,6 +32,7 @@
 #include <memory>
 
 #include <QDialog>
+#include <QEvent>
 #include <QTimer>
 
 #include "base/path.h"
@@ -89,6 +90,7 @@ private:
     struct Context;
 
     void showEvent(QShowEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
     void setCurrentContext(std::shared_ptr<Context> context);
     void updateCurrentContext();

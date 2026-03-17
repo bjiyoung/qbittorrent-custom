@@ -1,5 +1,8 @@
-Sun Mar 08th 2026 - bjiyoung - v5.1.4.5
-    - BUGFIX: Auto-confirm countdown now appears on OK button (was invisible because
-      timer started before dialog was shown; moved to showEvent) (bjiyoung)
-    - UI: Translated auto-confirm option label to Korean (bjiyoung)
+Mon Mar 17th 2026 - bjiyoung - v5.1.4.6
+    - BUGFIX: Auto-confirm timer now stops on any user interaction in Add Torrent
+      dialog (replaced individual signal connects with eventFilter) (bjiyoung)
+    - BUGFIX: Fixed "Completed" status showing before file move to save path.
+      When both save path and download path are set, m_hasFinishedStatus is now
+      set to true before adjustStorageLocation() so the target is correctly
+      savePath() instead of downloadPath() (bjiyoung)
 

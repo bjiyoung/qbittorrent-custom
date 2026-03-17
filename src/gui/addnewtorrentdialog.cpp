@@ -400,25 +400,6 @@ AddNewTorrentDialog::AddNewTorrentDialog(const BitTorrent::TorrentDescriptor &to
             applySizeFilter();
     });
 
-    // Stop auto-confirm timer when the user changes ANY setting in the dialog
-    const auto stopTimer = [this]() { stopAutoConfirmTimer(); };
-    connect(m_ui->savePath,                &FileSystemPathEdit::selectedPathChanged,          this, stopTimer);
-    connect(m_ui->downloadPath,            &FileSystemPathEdit::selectedPathChanged,          this, stopTimer);
-    connect(m_ui->groupBoxDownloadPath,    &QGroupBox::toggled,                               this, stopTimer);
-    connect(m_ui->checkBoxRememberLastSavePath, &QCheckBox::toggled,                          this, stopTimer);
-    connect(m_ui->comboTMM,               qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
-    connect(m_ui->categoryComboBox,       qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
-    connect(m_ui->tagsEditButton,         &QPushButton::clicked,                             this, stopTimer);
-    connect(m_ui->startTorrentCheckBox,   &QCheckBox::toggled,                               this, stopTimer);
-    connect(m_ui->stopConditionComboBox,  qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
-    connect(m_ui->contentLayoutComboBox,  qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
-    connect(m_ui->buttonSelectAll,        &QPushButton::clicked,                             this, stopTimer);
-    connect(m_ui->buttonSelectNone,       &QPushButton::clicked,                             this, stopTimer);
-    connect(m_ui->lineEditSizeFilter,     &QLineEdit::textChanged,                           this, stopTimer);
-    connect(m_ui->comboBoxSizeUnit,       qOverload<int>(&QComboBox::currentIndexChanged),   this, stopTimer);
-    connect(m_filterLine,                 &LineEdit::textChanged,                            this, stopTimer);
-    connect(m_ui->contentTreeView,        &TorrentContentWidget::stateChanged,               this, stopTimer);
-
     connect(Preferences::instance(), &Preferences::changed, []
     {
         const int length = Preferences::instance()->addNewTorrentDialogSavePathHistoryLength();
@@ -486,6 +467,8 @@ void AddNewTorrentDialog::showEvent(QShowEvent *event)
     if (m_pendingAutoConfirm)
     {
         m_pendingAutoConfirm = false;
+        // Install event filter to catch ALL user interaction and stop the timer.
+        installEventFilter(this);
         startAutoConfirmTimer();
     }
 
@@ -1074,6 +1057,29 @@ void AddNewTorrentDialog::TMMChanged(int index)
     }
 
     updateDiskSpaceLabel();
+}
+
+bool AddNewTorrentDialog::eventFilter(QObject *watched, QEvent *event)
+{
+    // Stop the auto-confirm countdown on ANY user interaction with the dialog.
+    if (m_autoConfirmTimer)
+    {
+        switch (event->type())
+        {
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonRelease:
+        case QEvent::MouseButtonDblClick:
+        case QEvent::KeyPress:
+        case QEvent::Wheel:
+        case QEvent::TouchBegin:
+            stopAutoConfirmTimer();
+            break;
+        default:
+            break;
+        }
+    }
+
+    return QDialog::eventFilter(watched, event);
 }
 
 void AddNewTorrentDialog::startAutoConfirmTimer()

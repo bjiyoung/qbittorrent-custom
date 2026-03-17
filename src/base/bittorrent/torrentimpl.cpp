@@ -2130,19 +2130,28 @@ void TorrentImpl::handleTorrentFinishedAlert([[maybe_unused]] const lt::torrent_
 
     m_statusUpdatedTriggers.enqueue([this]()
     {
-        adjustStorageLocation();
-        manageActualFilePaths();
-
-        deferredRequestResumeData();
-
         const bool recheckTorrentsOnCompletion = Preferences::instance()->recheckTorrentsOnCompletion();
         if (recheckTorrentsOnCompletion && m_unchecked)
         {
+            // Recheck needed first; adjustStorageLocation will be called later
+            // by handleTorrentCheckedAlert which also sets m_hasFinishedStatus.
+            adjustStorageLocation();
+            manageActualFilePaths();
+            deferredRequestResumeData();
             forceRecheck();
         }
         else
         {
+            // Set m_hasFinishedStatus = true BEFORE adjustStorageLocation() so that
+            // adjustStorageLocation() correctly targets savePath() instead of
+            // downloadPath() when both paths are configured. Without this, the
+            // torrent could be marked "Completed" while the file is still sitting
+            // in the incomplete-download folder.
             m_hasFinishedStatus = true;
+
+            adjustStorageLocation();
+            manageActualFilePaths();
+            deferredRequestResumeData();
 
             if (isMoveInProgress() || (m_renameCount > 0))
                 m_moveFinishedTriggers.enqueue([this]() { m_session->handleTorrentFinished(this); });
